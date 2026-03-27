@@ -10,8 +10,10 @@
       overflow: hidden;
       height: 100%;
       width: 100%;
-      font-family: 'Segoe UI', sans-serif;
       background-color: #fff0f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     canvas {
@@ -39,178 +41,183 @@
   <canvas id="game"></canvas>
 
 <script>
-  const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d");
-  const messageBox = document.getElementById("messageBox");
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const messageBox = document.getElementById("messageBox");
 
-  const catImg = new Image();
-  catImg.src = "character.png"; // FIXED PATH
+// ✅ FIXED BASE RESOLUTION (prevents stretching)
+const BASE_WIDTH = 800;
+const BASE_HEIGHT = 400;
 
-  let canvasWidth = window.innerWidth;
-  let canvasHeight = window.innerHeight;
+// ✅ Responsive scaling
+function setupCanvas() {
+  let screenW = window.innerWidth;
+  let screenH = window.innerHeight;
 
-  // Retina scaling
-  const scale = window.devicePixelRatio || 1;
-  canvas.style.width = canvasWidth + "px";
-  canvas.style.height = canvasHeight + "px";
-  canvas.width = canvasWidth * scale;
-  canvas.height = canvasHeight * scale;
-  ctx.scale(scale, scale);
+  let scale = Math.min(screenW / BASE_WIDTH, screenH / BASE_HEIGHT);
 
-  let groundHeight = canvasHeight * 0.02;
-  let groundY = canvasHeight - groundHeight;
+  canvas.width = BASE_WIDTH * scale;
+  canvas.height = BASE_HEIGHT * scale;
 
-  let playerHeight = canvasHeight * 0.12;
-  let player = {
-    x: canvasWidth * 0.06,
-    y: groundY - playerHeight,
-    width: canvasWidth * 0.08,
-    height: playerHeight,
-    vy: 0,
-    jumping: false
-  };
+  canvas.style.width = canvas.width + "px";
+  canvas.style.height = canvas.height + "px";
 
-  let gravity = 1.0;
-  let obstacles = [];
-  let frame = 0;
-  let score = 0;
-  let gameOver = false;
-  const shownMessages = {};
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+}
 
-  const messages = {
-    150: "💌 You reached her heart! \"You're my favorite part of every day.\"",
-    1000: "💖 Level 1 Complete: \"You're the smile I look for every morning.\"",
-    2000: "💖 Level 2 Complete: \"With you, every step feels lighter.\"",
-    3000: "💖 Level 3 Complete: \"Even pixels can't match your beauty.\"",
-    4000: "💖 Level 4 Complete: \"Running toward you is my favorite journey.\"",
-    5000: "💖 Level 5 Complete: \"You’re my favorite level in life.\"",
-    6000: "💖 Level 6 Complete: \"I'd replay this game just to meet you again.\"",
-    7000: "💖 Level 7 Complete: \"Even in 8-bit, you're high-definition to me.\"",
-    8000: "💖 Level 8 Complete: \"You light up the path, even in the darkest levels.\"",
-    9000: "💖 Level 9 Complete: \"Every score I earn, I dedicate to you.\"",
-    10000: "💖 Final Level: \"You've always been the goal. I love you.\""
-  };
+setupCanvas();
+window.addEventListener("resize", () => location.reload());
 
-  let highScore = localStorage.getItem("highScore") || 0;
+// ✅ Image
+const catImg = new Image();
+catImg.src = "character.png";
 
-  function resizeCanvas() {
-    location.reload();
+// ✅ Game world (fixed sizes now)
+let groundHeight = 20;
+let groundY = BASE_HEIGHT - groundHeight;
+
+let player = {
+  x: 50,
+  y: groundY - 80,
+  width: 60,
+  height: 80,
+  vy: 0,
+  jumping: false
+};
+
+let gravity = 0.6;
+let obstacles = [];
+let frame = 0;
+let score = 0;
+let gameOver = false;
+const shownMessages = {};
+
+const messages = {
+  150: "💌 You reached her heart! \"You're my favorite part of every day.\"",
+  1000: "💖 Level 1 Complete: \"You're the smile I look for every morning.\"",
+  2000: "💖 Level 2 Complete: \"With you, every step feels lighter.\"",
+  3000: "💖 Level 3 Complete: \"Even pixels can't match your beauty.\"",
+  4000: "💖 Level 4 Complete: \"Running toward you is my favorite journey.\"",
+  5000: "💖 Level 5 Complete: \"You’re my favorite level in life.\"",
+  6000: "💖 Level 6 Complete: \"I'd replay this game just to meet you again.\"",
+  7000: "💖 Level 7 Complete: \"Even in 8-bit, you're high-definition to me.\"",
+  8000: "💖 Level 8 Complete: \"You light up the path, even in the darkest levels.\"",
+  9000: "💖 Level 9 Complete: \"Every score I earn, I dedicate to you.\"",
+  10000: "💖 Final Level: \"You've always been the goal. I love you.\""
+};
+
+let highScore = localStorage.getItem("highScore") || 0;
+
+// Controls
+function jump() {
+  if (!player.jumping) {
+    player.vy = -12;
+    player.jumping = true;
   }
-  window.addEventListener("resize", resizeCanvas);
+}
 
-  function jump() {
-    if (!player.jumping) {
-      player.vy = -canvasHeight * 0.03;
-      player.jumping = true;
-    }
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" || e.code === "ArrowUp") jump();
+});
+document.addEventListener("touchstart", jump);
+
+// Drawing
+function drawPlayer() {
+  ctx.drawImage(catImg, player.x, player.y, player.width, player.height);
+}
+
+function drawObstacle(ob) {
+  ctx.fillStyle = "#c2255c";
+  ctx.fillRect(ob.x, ob.y, ob.width, ob.height);
+}
+
+function drawScore() {
+  ctx.fillStyle = "#d6336c";
+  ctx.font = "16px Arial";
+  ctx.fillText("Score: " + score, 10, 20);
+  ctx.fillText("High Score: " + highScore, 10, 40);
+}
+
+function showMessage(msg) {
+  messageBox.textContent = msg;
+  messageBox.style.display = "block";
+  messageBox.style.opacity = "1";
+  setTimeout(() => messageBox.style.opacity = "0", 3000);
+}
+
+// Game loop
+function update() {
+  if (gameOver) return;
+
+  ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
+
+  // Ground
+  ctx.fillStyle = "#fcc2d7";
+  ctx.fillRect(0, groundY, BASE_WIDTH, groundHeight);
+
+  // Player physics
+  player.y += player.vy;
+  player.vy += gravity;
+
+  if (player.y >= groundY - player.height) {
+    player.y = groundY - player.height;
+    player.vy = 0;
+    player.jumping = false;
   }
 
-  document.addEventListener("keydown", e => {
-    if (e.code === "Space" || e.code === "ArrowUp") {
-      jump();
-    }
-  });
+  drawPlayer();
 
-  document.addEventListener("touchstart", jump);
-
-  function drawPlayer() {
-    ctx.drawImage(catImg, player.x, player.y, player.width, player.height);
+  // Obstacles
+  if (frame % 85 === 0) {
+    obstacles.push({
+      x: BASE_WIDTH,
+      y: groundY - 50,
+      width: 25,
+      height: 50
+    });
   }
 
-  function drawObstacle(ob) {
-    ctx.fillStyle = "#c2255c";
-    ctx.fillRect(ob.x, ob.y, ob.width, ob.height);
-  }
+  for (let i = 0; i < obstacles.length; i++) {
+    obstacles[i].x -= 5;
+    drawObstacle(obstacles[i]);
 
-  function drawScore() {
-    ctx.fillStyle = "#d6336c";
-    ctx.font = `${canvasHeight * 0.025}px Arial`;
-    ctx.fillText("Score: " + score, 10, 30);
-    ctx.fillText("High Score: " + highScore, 10, 60);
-  }
-
-  function showMessage(msg) {
-    messageBox.textContent = msg;
-    messageBox.style.display = "block";
-    messageBox.style.opacity = "1";
-    setTimeout(() => {
-      messageBox.style.opacity = "0";
-    }, 3000);
-  }
-
-  function update() {
-    if (gameOver) return;
-
-    // ✅ FIXED clearRect
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "#fcc2d7";
-    ctx.fillRect(0, groundY, canvasWidth, groundHeight);
-
-    player.y += player.vy;
-    player.vy += gravity;
-
-    if (player.y >= groundY - player.height) {
-      player.y = groundY - player.height;
-      player.vy = 0;
-      player.jumping = false;
-    }
-
-    drawPlayer();
-
-    if (frame % 85 === 0) {
-      obstacles.push({
-        x: canvasWidth,
-        y: groundY - canvasHeight * 0.06,
-        width: canvasWidth * 0.03,
-        height: canvasHeight * 0.06
-      });
-    }
-
-    for (let i = 0; i < obstacles.length; i++) {
-      obstacles[i].x -= canvasWidth * 0.007;
-      drawObstacle(obstacles[i]);
-
-      if (
-        player.x < obstacles[i].x + obstacles[i].width &&
-        player.x + player.width > obstacles[i].x &&
-        player.y < obstacles[i].y + obstacles[i].height &&
-        player.y + player.height > obstacles[i].y
-      ) {
-        if (score > highScore) {
-          localStorage.setItem("highScore", score);
-        }
-        gameOver = true;
-        alert("Game Over 💔 Try again!");
-        location.reload();
+    // Collision
+    if (
+      player.x < obstacles[i].x + obstacles[i].width &&
+      player.x + player.width > obstacles[i].x &&
+      player.y < obstacles[i].y + obstacles[i].height &&
+      player.y + player.height > obstacles[i].y
+    ) {
+      if (score > highScore) {
+        localStorage.setItem("highScore", score);
       }
+      gameOver = true;
+      alert("Game Over 💔 Try again!");
+      location.reload();
     }
-
-    obstacles = obstacles.filter(ob => ob.x + ob.width > 0);
-
-    drawScore();
-    score++;
-    frame++;
-
-    if (messages[score] && !shownMessages[score]) {
-      showMessage(messages[score]);
-      shownMessages[score] = true;
-    }
-
-    requestAnimationFrame(update);
   }
 
-  // ✅ START ONLY WHEN IMAGE LOADS
-  catImg.onload = () => {
-    update();
-  };
+  obstacles = obstacles.filter(ob => ob.x + ob.width > 0);
 
-  // ❗ fallback if image fails
-  catImg.onerror = () => {
-    console.error("Image failed to load. Check path!");
-    alert("Image not found. Check your /img folder.");
-    update(); // still run game
-  };
+  drawScore();
+
+  score++;
+  frame++;
+
+  if (messages[score] && !shownMessages[score]) {
+    showMessage(messages[score]);
+    shownMessages[score] = true;
+  }
+
+  requestAnimationFrame(update);
+}
+
+// Start only when image is ready
+catImg.onload = () => update();
+catImg.onerror = () => {
+  alert("Image not found! Make sure character.png is uploaded.");
+  update();
+};
 </script>
 </body>
 </html>
