@@ -45,11 +45,9 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const messageBox = document.getElementById("messageBox");
 
-// ✅ FIXED BASE RESOLUTION (prevents stretching)
 const BASE_WIDTH = 800;
 const BASE_HEIGHT = 400;
 
-// ✅ Responsive scaling
 function setupCanvas() {
   let screenW = window.innerWidth;
   let screenH = window.innerHeight;
@@ -68,11 +66,11 @@ function setupCanvas() {
 setupCanvas();
 window.addEventListener("resize", () => location.reload());
 
-// ✅ Image
+// Image
 const catImg = new Image();
 catImg.src = "character.png";
 
-// ✅ Game world (fixed sizes now)
+// Game world
 let groundHeight = 20;
 let groundY = BASE_HEIGHT - groundHeight;
 
@@ -91,6 +89,39 @@ let frame = 0;
 let score = 0;
 let gameOver = false;
 const shownMessages = {};
+
+// 💖 HEART SYSTEM
+let hearts = [];
+
+function createHeartBurst() {
+  for (let i = 0; i < 25; i++) {
+    hearts.push({
+      x: Math.random() * BASE_WIDTH,
+      y: BASE_HEIGHT,
+      size: Math.random() * 12 + 12,
+      speedY: Math.random() * 2 + 1,
+      speedX: (Math.random() - 0.5) * 2,
+      alpha: 1
+    });
+  }
+}
+
+function drawHearts() {
+  for (let i = 0; i < hearts.length; i++) {
+    let h = hearts[i];
+
+    ctx.globalAlpha = h.alpha;
+    ctx.font = h.size + "px Arial";
+    ctx.fillText("💖", h.x, h.y);
+
+    h.y -= h.speedY;
+    h.x += h.speedX;
+    h.alpha -= 0.01;
+  }
+
+  ctx.globalAlpha = 1;
+  hearts = hearts.filter(h => h.alpha > 0);
+}
 
 const messages = {
   150: "💌 You reached her heart! \"You're my favorite part of every day.\"",
@@ -151,11 +182,14 @@ function update() {
 
   ctx.clearRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
 
+  // 💖 Draw hearts first (background effect)
+  drawHearts();
+
   // Ground
   ctx.fillStyle = "#fcc2d7";
   ctx.fillRect(0, groundY, BASE_WIDTH, groundHeight);
 
-  // Player physics
+  // Player
   player.y += player.vy;
   player.vy += gravity;
 
@@ -181,7 +215,6 @@ function update() {
     obstacles[i].x -= 5;
     drawObstacle(obstacles[i]);
 
-    // Collision
     if (
       player.x < obstacles[i].x + obstacles[i].width &&
       player.x + player.width > obstacles[i].x &&
@@ -204,15 +237,17 @@ function update() {
   score++;
   frame++;
 
+  // 💖 Trigger hearts on level
   if (messages[score] && !shownMessages[score]) {
     showMessage(messages[score]);
+    createHeartBurst(); // 🎉 HEART EFFECT
     shownMessages[score] = true;
   }
 
   requestAnimationFrame(update);
 }
 
-// Start only when image is ready
+// Start game
 catImg.onload = () => update();
 catImg.onerror = () => {
   alert("Image not found! Make sure character.png is uploaded.");
