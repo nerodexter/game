@@ -44,14 +44,12 @@
   const messageBox = document.getElementById("messageBox");
 
   const catImg = new Image();
-  catImg.src = "character.png"; // Your cute cat sprite
+  catImg.src = "character.png"; // FIXED PATH
 
   let canvasWidth = window.innerWidth;
   let canvasHeight = window.innerHeight;
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
 
-  // Support retina/high DPI screens
+  // Retina scaling
   const scale = window.devicePixelRatio || 1;
   canvas.style.width = canvasWidth + "px";
   canvas.style.height = canvasHeight + "px";
@@ -96,12 +94,10 @@
   let highScore = localStorage.getItem("highScore") || 0;
 
   function resizeCanvas() {
-    location.reload(); // Reset for full recalculation
+    location.reload();
   }
-
   window.addEventListener("resize", resizeCanvas);
 
-  // Controls
   function jump() {
     if (!player.jumping) {
       player.vy = -canvasHeight * 0.03;
@@ -145,15 +141,15 @@
   function update() {
     if (gameOver) return;
 
-    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+    // ✅ FIXED clearRect
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Ground
     ctx.fillStyle = "#fcc2d7";
     ctx.fillRect(0, groundY, canvasWidth, groundHeight);
 
-    // Player update
     player.y += player.vy;
     player.vy += gravity;
+
     if (player.y >= groundY - player.height) {
       player.y = groundY - player.height;
       player.vy = 0;
@@ -162,7 +158,6 @@
 
     drawPlayer();
 
-    // Obstacles
     if (frame % 85 === 0) {
       obstacles.push({
         x: canvasWidth,
@@ -173,10 +168,9 @@
     }
 
     for (let i = 0; i < obstacles.length; i++) {
-      obstacles[i].x -= canvasWidth * 0.007; // Responsive speed
+      obstacles[i].x -= canvasWidth * 0.007;
       drawObstacle(obstacles[i]);
 
-      // Collision detection
       if (
         player.x < obstacles[i].x + obstacles[i].width &&
         player.x + player.width > obstacles[i].x &&
@@ -206,7 +200,17 @@
     requestAnimationFrame(update);
   }
 
-  update();
+  // ✅ START ONLY WHEN IMAGE LOADS
+  catImg.onload = () => {
+    update();
+  };
+
+  // ❗ fallback if image fails
+  catImg.onerror = () => {
+    console.error("Image failed to load. Check path!");
+    alert("Image not found. Check your /img folder.");
+    update(); // still run game
+  };
 </script>
 </body>
 </html>
