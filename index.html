@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Run to Her Heart 💗</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      height: 100%;
+      width: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fff0f5;
+    }
+
+    canvas {
+      background: #ffe3ec;
+      display: block;
+    }
+
+    #messageBox {
+      position: absolute;
+      top: 5%;
+      width: 100%;
+      text-align: center;
+      font-size: 4vw;
+      color: #d6336c;
+      z-index: 10;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.6);
+      transition: opacity 0.5s;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="messageBox"></div>
+  <canvas id="game"></canvas>
+
+<script>
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const messageBox = document.getElementById("messageBox");
+
+  const catImg = new Image();
+  catImg.src = "img/character.png"; // Your cute cat sprite
+
+  let canvasWidth = window.innerWidth;
+  let canvasHeight = window.innerHeight;
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+
+  // Support retina/high DPI screens
+  const scale = window.devicePixelRatio || 1;
+  canvas.style.width = canvasWidth + "px";
+  canvas.style.height = canvasHeight + "px";
+  canvas.width = canvasWidth * scale;
+  canvas.height = canvasHeight * scale;
+  ctx.scale(scale, scale);
+
+  let groundHeight = canvasHeight * 0.02;
+  let groundY = canvasHeight - groundHeight;
+
+  let playerHeight = canvasHeight * 0.12;
+  let player = {
+    x: canvasWidth * 0.06,
+    y: groundY - playerHeight,
+    width: canvasWidth * 0.08,
+    height: playerHeight,
+    vy: 0,
+    jumping: false
+  };
+
+  let gravity = 1.0;
+  let obstacles = [];
+  let frame = 0;
+  let score = 0;
+  let gameOver = false;
+  const shownMessages = {};
+
+  const messages = {
+    150: "💌 You reached her heart! \"You're my favorite part of every day.\"",
+    1000: "💖 Level 1 Complete: \"You're the smile I look for every morning.\"",
+    2000: "💖 Level 2 Complete: \"With you, every step feels lighter.\"",
+    3000: "💖 Level 3 Complete: \"Even pixels can't match your beauty.\"",
+    4000: "💖 Level 4 Complete: \"Running toward you is my favorite journey.\"",
+    5000: "💖 Level 5 Complete: \"You’re my favorite level in life.\"",
+    6000: "💖 Level 6 Complete: \"I'd replay this game just to meet you again.\"",
+    7000: "💖 Level 7 Complete: \"Even in 8-bit, you're high-definition to me.\"",
+    8000: "💖 Level 8 Complete: \"You light up the path, even in the darkest levels.\"",
+    9000: "💖 Level 9 Complete: \"Every score I earn, I dedicate to you.\"",
+    10000: "💖 Final Level: \"You've always been the goal. I love you.\""
+  };
+
+  let highScore = localStorage.getItem("highScore") || 0;
+
+  function resizeCanvas() {
+    location.reload(); // Reset for full recalculation
+  }
+
+  window.addEventListener("resize", resizeCanvas);
+
+  // Controls
+  function jump() {
+    if (!player.jumping) {
+      player.vy = -canvasHeight * 0.03;
+      player.jumping = true;
+    }
+  }
+
+  document.addEventListener("keydown", e => {
+    if (e.code === "Space" || e.code === "ArrowUp") {
+      jump();
+    }
+  });
+
+  document.addEventListener("touchstart", jump);
+
+  function drawPlayer() {
+    ctx.drawImage(catImg, player.x, player.y, player.width, player.height);
+  }
+
+  function drawObstacle(ob) {
+    ctx.fillStyle = "#c2255c";
+    ctx.fillRect(ob.x, ob.y, ob.width, ob.height);
+  }
+
+  function drawScore() {
+    ctx.fillStyle = "#d6336c";
+    ctx.font = `${canvasHeight * 0.025}px Arial`;
+    ctx.fillText("Score: " + score, 10, 30);
+    ctx.fillText("High Score: " + highScore, 10, 60);
+  }
+
+  function showMessage(msg) {
+    messageBox.textContent = msg;
+    messageBox.style.display = "block";
+    messageBox.style.opacity = "1";
+    setTimeout(() => {
+      messageBox.style.opacity = "0";
+    }, 3000);
+  }
+
+  function update() {
+    if (gameOver) return;
+
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    // Ground
+    ctx.fillStyle = "#fcc2d7";
+    ctx.fillRect(0, groundY, canvasWidth, groundHeight);
+
+    // Player update
+    player.y += player.vy;
+    player.vy += gravity;
+    if (player.y >= groundY - player.height) {
+      player.y = groundY - player.height;
+      player.vy = 0;
+      player.jumping = false;
+    }
+
+    drawPlayer();
+
+    // Obstacles
+    if (frame % 85 === 0) {
+      obstacles.push({
+        x: canvasWidth,
+        y: groundY - canvasHeight * 0.06,
+        width: canvasWidth * 0.03,
+        height: canvasHeight * 0.06
+      });
+    }
+
+    for (let i = 0; i < obstacles.length; i++) {
+      obstacles[i].x -= canvasWidth * 0.007; // Responsive speed
+      drawObstacle(obstacles[i]);
+
+      // Collision detection
+      if (
+        player.x < obstacles[i].x + obstacles[i].width &&
+        player.x + player.width > obstacles[i].x &&
+        player.y < obstacles[i].y + obstacles[i].height &&
+        player.y + player.height > obstacles[i].y
+      ) {
+        if (score > highScore) {
+          localStorage.setItem("highScore", score);
+        }
+        gameOver = true;
+        alert("Game Over 💔 Try again!");
+        location.reload();
+      }
+    }
+
+    obstacles = obstacles.filter(ob => ob.x + ob.width > 0);
+
+    drawScore();
+    score++;
+    frame++;
+
+    if (messages[score] && !shownMessages[score]) {
+      showMessage(messages[score]);
+      shownMessages[score] = true;
+    }
+
+    requestAnimationFrame(update);
+  }
+
+  update();
+</script>
+</body>
+</html>
